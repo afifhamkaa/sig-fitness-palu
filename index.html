@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIT-GIS Palu | KELOMPOK 10</title>
+  
+  <!-- Leaflet Maps API -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet Routing Machine -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="brand">
+      <span class="badge">FIT-GIS</span>
+      <div>
+        <h1>Peta Lokasi Fitness & Kolam Renang Palu</h1>
+        <p>Sistem Informasi Geografis & Navigasi Rute Kebugaran</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button class="btn-gps" onclick="detectUserLocation()">📍 Lokasi Saya</button>
+      <button class="btn-secondary" onclick="fitAllMarkers()">Semua Titik</button>
+      <button class="btn-secondary" onclick="clearRoute()">Hapus Rute</button>
+      <button class="btn-primary" onclick="openModal()">+ Tambah Lokasi</button>
+    </div>
+  </header>
+
+  <!-- Kontainer Utama -->
+  <div class="main-container">
+    
+    <!-- Sidebar Kiri -->
+    <aside class="sidebar">
+      <div class="filter-section">
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Cari nama gym, kolam renang, wilayah..." 
+          oninput="filterData()"
+        />
+
+        <div class="category-group" id="categoryButtons">
+          <button class="cat-btn active" onclick="setCategory('Semua', this)">Semua</button>
+          <button class="cat-btn" onclick="setCategory('Gym', this)">Gym</button>
+          <button class="cat-btn" onclick="setCategory('Kolam Renang & Hotel', this)">Kolam Renang</button>
+          <button class="cat-btn" onclick="setCategory('Martial Arts', this)">Martial Arts</button>
+          <button class="cat-btn" onclick="setCategory('Yoga & Pilates', this)">Yoga & Pilates</button>
+        </div>
+
+        <div class="status-bar">
+          <span id="resultCount">Menampilkan 0 lokasi</span>
+          <span id="apiStatus" class="status-badge">Menghubungkan...</span>
+        </div>
+        <div class="status-bar">
+          <span id="gpsStatus" class="gps-text">GPS: Klik "Lokasi Saya" untuk navigasi</span>
+        </div>
+      </div>
+
+      <!-- Daftar Lokasi -->
+      <div id="locationList" class="location-list"></div>
+    </aside>
+
+    <!-- Area Peta Interaktif -->
+    <main class="map-wrapper">
+      <div id="map"></div>
+
+      <!-- Kotak Info Jarak & Waktu Rute -->
+      <div id="routeInfoBox" class="route-box hidden">
+        <div class="route-header">
+          <strong>Navigasi Rute Aktif</strong>
+          <button class="close-btn" onclick="clearRoute()">&times;</button>
+        </div>
+        <p id="routeTargetName" class="route-target">Tujuan: -</p>
+        <div class="route-metrics">
+          <div>
+            <span>Jarak Tempuh</span>
+            <strong id="routeDistance">- km</strong>
+          </div>
+          <div>
+            <span>Estimasi Waktu</span>
+            <strong id="routeDuration">- menit</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legenda Peta -->
+      <div class="map-legend">
+        <h4>Legenda Kategori</h4>
+        <div><span class="dot user"></span> Posisi Anda (GPS)</div>
+        <div><span class="dot gym"></span> Gym & Fitness</div>
+        <div><span class="dot pool"></span> Kolam Renang & Hotel</div>
+        <div><span class="dot martial"></span> Martial Arts</div>
+        <div><span class="dot yoga"></span> Yoga & Pilates</div>
+      </div>
+
+      <!-- Kartu Detail Lokasi (Dengan Banner Foto & Info Lengkap) -->
+      <div id="detailCard" class="detail-card hidden">
+        <div class="detail-image-wrapper">
+          <img id="detailImage" src="" alt="Foto Lokasi" />
+          <span id="detailCategory" class="tag overlay-tag">Kategori</span>
+          <button class="close-btn overlay-close" onclick="closeDetail()">&times;</button>
+        </div>
+
+        <div class="detail-body">
+          <h2 id="detailName">Nama Lokasi</h2>
+          
+          <div class="info-list">
+            <div class="info-row">
+              <span>📍</span>
+              <span id="detailAddress">Alamat lokasi</span>
+            </div>
+            <div class="info-row">
+              <span>🕒</span>
+              <span id="detailHours">Jam operasional</span>
+            </div>
+            <div class="info-row">
+              <span>🏋️</span>
+              <span id="detailFacilities">Fasilitas</span>
+            </div>
+          </div>
+
+          <p id="detailCoords" class="detail-coords">-0.900000, 119.875000</p>
+
+          <div class="detail-actions">
+            <button id="routeHereBtn" class="btn-route">🧭 Rute ke Sini</button>
+            <a id="gmapsLink" href="#" target="_blank" class="btn-maps">Google Maps</a>
+            <button id="editBtn" class="btn-edit">Edit</button>
+            <button id="deleteBtn" class="btn-delete">Hapus</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Form Tambah & Edit Data -->
+  <div id="crudModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 id="modalTitle">Tambah Lokasi Baru</h3>
+      <form id="locationForm" onsubmit="saveLocation(event)">
+        <input type="hidden" id="locId" />
+        
+        <div class="form-group">
+          <label for="locName">Nama Tempat</label>
+          <input type="text" id="locName" required placeholder="Contoh: Mustika GYM" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="locCategory">Kategori</label>
+            <select id="locCategory">
+              <option value="Gym">Gym</option>
+              <option value="Kolam Renang & Hotel">Kolam Renang & Hotel</option>
+              <option value="Martial Arts">Martial Arts</option>
+              <option value="Yoga & Pilates">Yoga & Pilates</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="locHours">Jam Operasional</label>
+            <input type="text" id="locHours" placeholder="06.00 - 22.00 WITA" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="locAddress">Alamat / Wilayah</label>
+          <input type="text" id="locAddress" placeholder="Contoh: Kec. Palu Timur, Kota Palu" />
+        </div>
+
+        <div class="form-group">
+          <label for="locImage">URL Foto Lokasi (Opsional)</label>
+          <input type="url" id="locImage" placeholder="https://contoh.com/foto-lokasi.jpg" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="locLat">Latitude</label>
+            <input type="number" step="any" id="locLat" required placeholder="-0.901234" />
+          </div>
+          <div class="form-group">
+            <label for="locLng">Longitude</label>
+            <input type="number" step="any" id="locLng" required placeholder="119.871234" />
+          </div>
+        </div>
+        <small class="hint">*Tips: Klik langsung pada peta untuk mengisi titik koordinat otomatis.</small>
+
+        <div class="form-group">
+          <label for="locFacilities">Fasilitas Lengkap</label>
+          <textarea id="locFacilities" rows="2" placeholder="Contoh: Alat beban lengkap, ruang ganti, parkir luas"></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Batal</button>
+          <button type="submit" class="btn-primary">Simpan Data</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Custom JavaScript -->
+  <script src="js/app.js"></script>
+</body>
+</html>
