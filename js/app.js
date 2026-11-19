@@ -386,3 +386,146 @@ fetchLocations();
 window.addEventListener('resize', () => {
   map.invalidateSize();
 });
+
+const dataPoligonKecamatan = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        nama: "Zona Kec. Palu Timur & Mantikulore",
+        keterangan: "Kawasan pusat komersial, kampus, dan konsentrasi pusat kebugaran."
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [119.8740, -0.8800],
+          [119.9080, -0.8800],
+          [119.9080, -0.9060],
+          [119.8740, -0.9060],
+          [119.8740, -0.8800]
+        ]]
+      }
+    },
+    {
+      type: "Feature",
+      properties: {
+        nama: "Zona Kec. Palu Selatan",
+        keterangan: "Kawasan permukiman padat, perkantoran, dan fasilitas olahraga."
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [119.8680, -0.9060],
+          [119.9080, -0.9060],
+          [119.9080, -0.9350],
+          [119.8680, -0.9350],
+          [119.8680, -0.9060]
+        ]]
+      }
+    },
+    {
+      type: "Feature",
+      properties: {
+        nama: "Zona Kec. Palu Barat & Ulujadi",
+        keterangan: "Kawasan pesisir teluk, pusat perdagangan, dan akses rekreasi."
+      },
+      geometry: {
+        type: "Polygon",
+        coordinates: [[
+          [119.8350, -0.8850],
+          [119.8740, -0.8850],
+          [119.8740, -0.9220],
+          [119.8350, -0.9220],
+          [119.8350, -0.8850]
+        ]]
+      }
+    }
+  ]
+};
+
+// 2. Data GeoJSON Garis / Polyline (Koridor Jalan Protokol Utama Kota Palu)
+const dataGarisJalan = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: {
+        nama: "Koridor Utama Jl. Moh. Yamin - Jl. Sudirman - Jl. Sam Ratulangi",
+        jenis: "Jalan Arteri Utama"
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [119.8965, -0.9160],
+          [119.8885, -0.9075],
+          [119.8810, -0.9005],
+          [119.8765, -0.8935],
+          [119.8750, -0.8860]
+        ]
+      }
+    },
+    {
+      type: "Feature",
+      properties: {
+        nama: "Koridor Penghubung Barat - Timur (Jembatan Palu IV / Jl. Rajamoili - Jl. Cut Mutia)",
+        jenis: "Jalan Kolektor Utama"
+      },
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [119.8480, -0.8960],
+          [119.8615, -0.8925],
+          [119.8750, -0.8860],
+          [119.8860, -0.8855],
+          [119.8980, -0.8870]
+        ]
+      }
+    }
+  ]
+};
+
+// 3. Render Layer Poligon ke Peta
+const layerPoligon = L.geoJSON(dataPoligonKecamatan, {
+  style: function (feature) {
+    return {
+      color: "#0d9488",
+      weight: 2,
+      opacity: 0.8,
+      fillColor: "#14b8a6",
+      fillOpacity: 0.12
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    layer.bindPopup(
+      `<strong>${feature.properties.nama}</strong><br><small>${feature.properties.keterangan}</small>`
+    );
+  }
+}).addTo(map);
+
+// 4. Render Layer Garis (Polyline) ke Peta
+const layerGaris = L.geoJSON(dataGarisJalan, {
+  style: function (feature) {
+    return {
+      color: "#f97316",
+      weight: 4,
+      opacity: 0.9,
+      dashArray: "8, 6"
+    };
+  },
+  onEachFeature: function (feature, layer) {
+    layer.bindPopup(
+      `<strong>${feature.properties.nama}</strong><br><small>Tipe: ${feature.properties.jenis}</small>`
+    );
+  }
+}).addTo(map);
+
+// Pastikan pin marker titik selalu berada di lapisan paling atas agar mudah diklik
+layerPoligon.bringToBack();
+
+// 5. Tambahkan Kontrol Layer di Pojok Kanan Atas / Bawah Peta
+const overlayLayers = {
+  "Zona Kecamatan (Poligon)": layerPoligon,
+  "Koridor Jalan Utama (Garis)": layerGaris
+};
+L.control.layers(null, overlayLayers, { position: "bottomright", collapsed: false }).addTo(map);
