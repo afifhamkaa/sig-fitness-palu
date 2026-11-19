@@ -1,5 +1,4 @@
-// Ganti dengan URL Backend Render Anda setelah deploy (contoh: 'https://fit-gis-palu-backend.onrender.com/api/lokasi')
-const API_URL = 'http://localhost:3000/api/lokasi';
+const API_URL = '/api/lokasi';
 
 // Data cadangan 30 titik koordinat Kota Palu lengkap dengan alamat, jam buka & fasilitas
 const DEFAULT_LOCATIONS = [
